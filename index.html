@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html ng-app="listaTelefonica">
+<head>
+	<title>Lista Telefonica</title>
+	<meta charset="utf8">
+
+	<!-- bootstrap -->
+	<link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.css">
+	<!-- css da aplicação -->
+	<link rel="stylesheet" type="text/css" href="css/app.css">	
+
+	<!-- biblioteca angular -->
+	<script type="text/javascript" src="lib/angular/angular.js"></script>
+	<!-- Arquivo para deixar as conf padrão pt br -->
+	<script type="text/javascript" src="lib/angular/i18n/angular-locale_pt-br.js"></script>
+	<!-- biblioteca de mensagens angular -->
+	<script type="text/javascript" src="lib/angular/angular-messages.min.js"></script>
+	<!-- js model da aplicação -->
+	<script type="text/javascript" src="js/app.js"></script>
+	<!-- controller da lista telefonica -->
+	<script type="text/javascript" src="js/controllers/listaTelefonicaCtrl.js"></script>	
+	<!-- Serviços que serão importados no projeto -->
+	<script type="text/javascript" src="js/services/contatosAPIService.js"></script>	
+	<script type="text/javascript" src="js/services/operadorasAPIService.js"></script>	
+	<script type="text/javascript" src="js/services/serialGeneratorService.js"></script>	
+	<script type="text/javascript" src="js/config/serialGeneratorConfig.js"></script>	
+
+	<!-- Esse arquivo vc pode parametrizar variaveis que serão globais como o campinho da API -->
+	<script type="text/javascript" src="js/value/configValue.js"></script>	
+
+	<!-- Criando os filtros personalizados -->
+	<script type="text/javascript" src="js/filter/nameFilter.js"></script>	
+
+</head>
+<body ng-controller="listaTelefonicaCtrl">
+	<div class="jumbotron">
+	    <h4>{{app}}</h4>
+	    <input type="text" ng-model="criterioBusca" class="form-control" placeholder="Oque você está buscando?">
+	    <table class="table" ng-show="contatos.length > 0">
+	    	<tr>
+	    	    <td><b>         </b></td>
+	    	    <td><a href="" ng-click="ordernarPor('serial')">   <b>Serial   </b></a></td>
+	    	    <td><a href="" ng-click="ordernarPor('nome')">     <b>Nome     </b></a></td>	
+	    	    <td><a href="" ng-click="ordernarPor('telefone')"> <b>Telefone </b></a></td>	
+	    	    <td><a href="" ng-click="ordernarPor('operadora')"><b>Operadora</b></a></td>
+	    	    <td><a href="" ng-click="ordernarPor('data')">     <b>Data     </b></a></td>
+	    	    <td><b>         </b></td>	
+	    	</tr>    
+    		<tr ng-class="{'selecionado negrito': contato.selecionado}" ng-repeat="contato in contatos | filter:criterioBusca | orderBy:criterioDeOrdenacao:direcaoOrdenacao">
+    			<td><input type="checkbox" ng-model="contato.selecionado" /></td>
+				<!-- aplicando filtro(formatação) de maiuscula -->
+				<td>{{contato.serial}}  </td>    			
+    			<td>{{contato.nome | name}}    </td> 
+    			<td>{{contato.telefone}}</td>
+				<!-- aplicando filtro(formatação) de minuscula -->    			
+    			<td>{{contato.operadora.nome | lowercase}}</td>
+    			<!-- aplicando filtro(formatação) de data e hora -->
+    			<td>{{contato.data | date: 'dd/MM/yyyy HH:mm' }}</td>
+    			<td><div style="width: 20px; height: 20px;" ng-style="{'background-color': contato.cor}"></div></td>
+    		</tr>
+	    </table>
+	    <hr />
+	    <form name="contatoForm">
+		    <input  class="form-control" type="text"  ng-model="contato.nome"     placeholder="nome"     name="nome"     ng-required="true" ng-minlength="10"/>
+		    <input  class="form-control" type="text"  ng-model="contato.telefone" placeholder="telefone" name="telefone" ng-required="true" ng-pattern="/^\d{4,5}-\d{4}$/"/>
+		    <select class="form-control" ng-model="contato.operadora" ng-options="operadora.nome + ' (' + (operadora.preco | currency) + ') ' group by operadora.categoria for operadora in operadoras | orderBy:'nome'">
+		    	<option value="">Selecione uma operadora</option>
+		    </select>
+		    <!-- validando por ng-required -->
+		    <button class="btn btn-primary btn-block" ng-click="adicionarContato(contato)" ng-disabled="contatoForm.$invalid">Adicionar Contato</button>
+
+		    <!-- usando o ng-disabled -->
+		    <!-- <button class="btn btn-primary btn-block" ng-click="adicionarContato(contato)" ng-disabled="!contato.nome || !contato.telefone">Adicionar Contato</button> -->
+
+			<!-- metodo ng-if esse remove o botão do DOM e o Habilita novamente -->
+		    <button class="btn btn-danger  btn-block" ng-click="apagarContato(contatos)"   ng-if="isContatoSelecionado(contatos)">Apagar contatos</button>
+
+			<!-- metodo ng-hide -->
+		    <!-- <button class="btn btn-danger  btn-block" ng-click="apagarContato(contatos)"   ng-hide="!isContatoSelecionado(contatos)">Apagar contatos</button> -->
+
+			<!-- metodo ng-show -->
+		    <!-- <button class="btn btn-danger  btn-block" ng-click="apagarContato(contatos)"   ng-show="isContatoSelecionado(contatos)">Apagar contatos</button> -->
+
+		    <!-- metodo ng-disabled -->
+		    <!-- <button class="btn btn-danger  btn-block" ng-click="apagarContato(contatos)"   ng-disabled="!isContatoSelecionado(contatos)">Apagar contatos</button> -->
+	    </form>
+
+	    <div ng-messages="contatoForm.nome.$error" class="alert alert-danger">
+		    <div ng-message="required" ng-show="contatoForm.nome.$dirty">
+		        Por favor, preencha o Nome 
+		    </div>
+		    <div ng-message="minlength">
+		        Nome Invalido
+		    </div>	    
+	    </div>
+	    <div ng-messages="contatoForm.telefone.$error" class="alert alert-danger">
+		    <div ng-message="required" ng-show="contatoForm.telefone.$dirty">
+		        Por favor, preencha o Telefone
+		    </div>
+		    <div ng-message="pattern">
+		        O campo telefone deve ter o formato DDDDD-DDDD
+		    </div>		    
+	    </div>
+	</div>
+	<div ng-include="'view/footer.html'"></div>
+</body>
+</html>
